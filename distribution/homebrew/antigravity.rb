@@ -1,4 +1,4 @@
-cask "antigravity" do
+cask "antigravity-tools" do
   version "3.2.0"
   sha256 :no_check
 
@@ -21,6 +21,6 @@ cask "antigravity" do
       sudo xattr -rd com.apple.quarantine "/Applications/Antigravity Tools.app"
     
     Or install with the --no-quarantine flag:
-      brew install --cask --no-quarantine antigravity
+      brew install --cask --no-quarantine antigravity-tools
   EOS
 end

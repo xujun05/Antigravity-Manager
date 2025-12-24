@@ -91,15 +91,15 @@ graph TD
     ResponseMapper --> Client
 ```
 
-## � 安装指南 (Installation)
+##  安装指南 (Installation)
 
 ### 选项 A: macOS 终端安装 (推荐)
 如果您已安装 [Homebrew](https://brew.sh/)，可以通过以下命令快速安装：
 
 ```bash
-# 直接安装
-brew install --cask antigravity
-
+# 由于官方仓库重名冲突，请使用以下命令从本仓库直接安装
+brew install --cask https://raw.githubusercontent.com/lbjlaq/Antigravity-Manager/main/distribution/homebrew/antigravity.rb
+```
 # 如果遇到权限问题，建议使用 --no-quarantine
 brew install --cask --no-quarantine antigravity
 ```
@@ -165,6 +165,7 @@ print(response.choices[0].message.content)
         - **协议与路由扩展**: 原生支持 OpenAI, Anthropic (Claude Code) 协议；新增“模型路由中心”，实现高精度 ID 映射。
         - **多模态优化**: 深度适配 Imagen 3，支持 100MB 超大 Payload 与多种比例参数透传。
         - **安装体验优化**: 正式支持 Homebrew Cask 安装；内置 macOS “应用损坏”自动化排查指南。
+        - **提示**：目前 `antigravity` 与 Google 官方工具重名。为确保安装的是本项目，目前推荐使用上述原始文件安装。后续我们将推出官方 Tap。
         - **全局上游代理**: 统一管理内外网请求，支持 HTTP/SOCKS5 协议及热重载。
 *   **版权许可**: 基于 **CC BY-NC-SA 4.0** 许可，**严禁任何形式的商业行为**。
 *   **安全声明**: 本应用所有账号数据加密存储于本地 SQLite 数据库，除非开启同步功能，否则数据绝不离开您的设备。
