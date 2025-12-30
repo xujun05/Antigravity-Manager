@@ -1,15 +1,14 @@
+use crate::proxy::TokenManager;
 use axum::{
-    Router,
-    routing::{get, post},
     extract::DefaultBodyLimit,
-    response::{IntoResponse, Response, Json},
+    response::{IntoResponse, Json, Response},
+    routing::{get, post},
+    Router,
 };
-use tracing::{debug, error};
-use tower_http::trace::TraceLayer;
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use crate::proxy::TokenManager;
-
+use tower_http::trace::TraceLayer;
+use tracing::{debug, error};
 
 /// Axum 应用状态
 #[derive(Clone)]
@@ -19,7 +18,7 @@ pub struct AppState {
     pub openai_mapping: Arc<tokio::sync::RwLock<std::collections::HashMap<String, String>>>,
     pub custom_mapping: Arc<tokio::sync::RwLock<std::collections::HashMap<String, String>>>,
     #[allow(dead_code)]
-    pub request_timeout: u64,  // API 请求超时(秒)
+    pub request_timeout: u64, // API 请求超时(秒)
     #[allow(dead_code)]
     pub thought_signature_map: Arc<tokio::sync::Mutex<std::collections::HashMap<String, String>>>, // 思维链签名映射 (ID -> Signature)
     #[allow(dead_code)]
@@ -81,49 +80,79 @@ impl AxumServer {
             openai_mapping: openai_mapping_state.clone(),
             custom_mapping: custom_mapping_state.clone(),
             request_timeout: 300, // 5分钟超时
-            thought_signature_map: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+            thought_signature_map: Arc::new(tokio::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
             upstream_proxy: proxy_state.clone(),
-            upstream: Arc::new(crate::proxy::upstream::client::UpstreamClient::new(Some(upstream_proxy.clone()))),
+            upstream: Arc::new(crate::proxy::upstream::client::UpstreamClient::new(Some(
+                upstream_proxy.clone(),
+            ))),
         };
-        
+
         // 构建路由 - 使用新架构的 handlers！
         use crate::proxy::handlers;
         // 构建路由
         let app = Router::new()
             // OpenAI Protocol
             .route("/v1/models", get(handlers::openai::handle_list_models))
-            .route("/v1/chat/completions", post(handlers::openai::handle_chat_completions))
-            .route("/v1/completions", post(handlers::openai::handle_completions))
+            .route(
+                "/v1/chat/completions",
+                post(handlers::openai::handle_chat_completions),
+            )
+            .route(
+                "/v1/completions",
+                post(handlers::openai::handle_completions),
+            )
             .route("/v1/responses", post(handlers::openai::handle_completions)) // 兼容 Codex CLI
-            
+            .route(
+                "/v1/images/generations",
+                post(handlers::openai::handle_images_generations),
+            ) // 图像生成 API
+            .route(
+                "/v1/images/edits",
+                post(handlers::openai::handle_images_edits),
+            ) // 图像编辑 API
             // Claude Protocol
             .route("/v1/messages", post(handlers::claude::handle_messages))
-            .route("/v1/messages/count_tokens", post(handlers::claude::handle_count_tokens))
-            .route("/v1/models/claude", get(handlers::claude::handle_list_models))
-            
+            .route(
+                "/v1/messages/count_tokens",
+                post(handlers::claude::handle_count_tokens),
+            )
+            .route(
+                "/v1/models/claude",
+                get(handlers::claude::handle_list_models),
+            )
             // Gemini Protocol (Native)
             .route("/v1beta/models", get(handlers::gemini::handle_list_models))
             // Handle both GET (get info) and POST (generateContent with colon) at the same route
-            .route("/v1beta/models/:model", get(handlers::gemini::handle_get_model).post(handlers::gemini::handle_generate))
-            .route("/v1beta/models/:model/countTokens", post(handlers::gemini::handle_count_tokens)) // Specific route priority
+            .route(
+                "/v1beta/models/:model",
+                get(handlers::gemini::handle_get_model).post(handlers::gemini::handle_generate),
+            )
+            .route(
+                "/v1beta/models/:model/countTokens",
+                post(handlers::gemini::handle_count_tokens),
+            ) // Specific route priority
             .route("/healthz", get(health_check_handler))
             .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
             .layer(TraceLayer::new_for_http())
-            .layer(axum::middleware::from_fn(crate::proxy::middleware::auth_middleware))
+            .layer(axum::middleware::from_fn(
+                crate::proxy::middleware::auth_middleware,
+            ))
             .layer(crate::proxy::middleware::cors_layer())
             .with_state(state);
-        
+
         // 绑定地址
         let addr = format!("{}:{}", host, port);
         let listener = tokio::net::TcpListener::bind(&addr)
             .await
             .map_err(|e| format!("地址 {} 绑定失败: {}", addr, e))?;
-        
+
         tracing::info!("反代服务器启动在 http://{}", addr);
-        
+
         // 创建关闭通道
         let (shutdown_tx, mut shutdown_rx) = oneshot::channel::<()>();
-        
+
         let server_instance = Self {
             shutdown_tx: Some(shutdown_tx),
             anthropic_mapping: mapping_state.clone(),
@@ -131,11 +160,11 @@ impl AxumServer {
             custom_mapping: custom_mapping_state.clone(),
             proxy_state,
         };
-        
+
         // 在新任务中启动服务器
         let handle = tokio::spawn(async move {
-            use hyper_util::rt::TokioIo;
             use hyper::server::conn::http1;
+            use hyper_util::rt::TokioIo;
             use hyper_util::service::TowerToHyperService;
 
             loop {
@@ -145,7 +174,7 @@ impl AxumServer {
                             Ok((stream, _)) => {
                                 let io = TokioIo::new(stream);
                                 let service = TowerToHyperService::new(app.clone());
-                                
+
                                 tokio::task::spawn(async move {
                                     if let Err(err) = http1::Builder::new()
                                         .serve_connection(io, service)
@@ -168,13 +197,10 @@ impl AxumServer {
                 }
             }
         });
-        
-        Ok((
-            server_instance,
-            handle,
-        ))
+
+        Ok((server_instance, handle))
     }
-    
+
     /// 停止服务器
     pub fn stop(mut self) {
         if let Some(tx) = self.shutdown_tx.take() {
@@ -189,5 +215,6 @@ impl AxumServer {
 async fn health_check_handler() -> Response {
     Json(serde_json::json!({
         "status": "ok"
-    })).into_response()
+    }))
+    .into_response()
 }

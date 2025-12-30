@@ -40,7 +40,7 @@ image = "0.25.9"
 thiserror = "2.0.17"
 
 # 反代服务依赖
-axum = "0.7"
+axum = { version = "0.7", features = ["multipart"] }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["full"] }
 tower = "0.4"
