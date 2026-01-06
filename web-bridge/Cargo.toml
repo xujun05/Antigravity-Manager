@@ -1,0 +1,22 @@
+[package]
+name = "web-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+antigravity_tools_lib = { path = "../src-tauri", package = "antigravity_tools" }
+
+# Common dependencies needed for the bridge
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["multipart", "macros"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.10", features = ["v4"] }
+anyhow = "1.0"
+
+# Re-export tauri so we can satisfy some trait bounds if necessary (though ideally we avoid using tauri types)
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+chrono = "0.4.42"
