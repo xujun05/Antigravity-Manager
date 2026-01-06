@@ -32,7 +32,8 @@ pub struct ProxyMonitor {
     pub stats: RwLock<ProxyStats>,
     pub max_logs: usize,
     pub enabled: AtomicBool,
-    app_handle: Option<tauri::AppHandle>,
+    // Made public so we can use it in Web Bridge (which passes None)
+    pub app_handle: Option<tauri::AppHandle>,
 }
 
 impl ProxyMonitor {
