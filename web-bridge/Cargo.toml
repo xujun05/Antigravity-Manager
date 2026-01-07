@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-antigravity_tools_lib = { path = "../src-tauri", package = "antigravity_tools" }
+antigravity_tools_lib = { path = "../src-tauri", package = "antigravity_tools", default-features = false }
 
 # Common dependencies needed for the bridge
 tokio = { version = "1", features = ["full"] }

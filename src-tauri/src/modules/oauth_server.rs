@@ -3,6 +3,8 @@ use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio::sync::watch;
 use std::sync::{Mutex, OnceLock};
+#![cfg_attr(not(feature = "desktop"), allow(unused_imports))]
+#[cfg(feature = "desktop")]
 use tauri::Url;
 use crate::modules::oauth;
 
@@ -19,6 +21,7 @@ fn get_oauth_flow_state() -> &'static Mutex<Option<OAuthFlowState>> {
     OAUTH_FLOW_STATE.get_or_init(|| Mutex::new(None))
 }
 
+#[cfg(feature = "desktop")]
 fn oauth_success_html() -> &'static str {
     "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n\
     <html>\
@@ -30,6 +33,7 @@ fn oauth_success_html() -> &'static str {
     </html>"
 }
 
+#[cfg(feature = "desktop")]
 fn oauth_fail_html() -> &'static str {
     "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n\
     <html>\
@@ -40,6 +44,7 @@ fn oauth_fail_html() -> &'static str {
     </html>"
 }
 
+#[cfg(feature = "desktop")]
 async fn ensure_oauth_flow_prepared(app_handle: &tauri::AppHandle) -> Result<String, String> {
     use tauri::Emitter;
 
@@ -218,8 +223,14 @@ async fn ensure_oauth_flow_prepared(app_handle: &tauri::AppHandle) -> Result<Str
 }
 
 /// 预生成 OAuth URL (不打开浏览器、不阻塞等待回调)
+#[cfg(feature = "desktop")]
 pub async fn prepare_oauth_url(app_handle: tauri::AppHandle) -> Result<String, String> {
     ensure_oauth_flow_prepared(&app_handle).await
+}
+
+#[cfg(not(feature = "desktop"))]
+pub async fn prepare_oauth_url(_app_handle: ()) -> Result<String, String> {
+    Err("OAuth is not supported in headless mode".to_string())
 }
 
 /// 取消当前的 OAuth 流程
@@ -233,6 +244,7 @@ pub fn cancel_oauth_flow() {
 }
 
 /// 启动 OAuth 流程并等待回调，再交换 token
+#[cfg(feature = "desktop")]
 pub async fn start_oauth_flow(app_handle: tauri::AppHandle) -> Result<oauth::TokenResponse, String> {
     // 确保已准备好 URL + listener（这样即使用户先授权，也不会卡住）
     let auth_url = ensure_oauth_flow_prepared(&app_handle).await?;
@@ -277,6 +289,7 @@ pub async fn start_oauth_flow(app_handle: tauri::AppHandle) -> Result<oauth::Tok
 /// Завершить OAuth flow без открытия браузера.
 /// Предполагается, что пользователь открыл ссылку вручную (или ранее была открыта),
 /// а мы только ждём callback и обмениваем code на token.
+#[cfg(feature = "desktop")]
 pub async fn complete_oauth_flow(app_handle: tauri::AppHandle) -> Result<oauth::TokenResponse, String> {
     // Ensure URL + listeners exist
     let _ = ensure_oauth_flow_prepared(&app_handle).await?;

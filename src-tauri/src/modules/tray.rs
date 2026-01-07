@@ -1,3 +1,4 @@
+#![cfg(feature = "desktop")]
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem},

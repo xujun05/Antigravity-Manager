@@ -1,5 +1,6 @@
 pub mod models;
 pub mod modules;
+#[cfg(feature = "desktop")]
 pub mod commands;
 pub mod utils;
 pub mod proxy;  // 反代服务模块
@@ -15,6 +16,7 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+#[cfg(feature = "desktop")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // 初始化日志
@@ -132,4 +134,9 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(not(feature = "desktop"))]
+pub fn run() {
+    println!("Headless library mode active. GUI not available.");
 }

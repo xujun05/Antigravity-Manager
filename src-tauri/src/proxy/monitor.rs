@@ -33,10 +33,14 @@ pub struct ProxyMonitor {
     pub max_logs: usize,
     pub enabled: AtomicBool,
     // Made public so we can use it in Web Bridge (which passes None)
+    #[cfg(feature = "desktop")]
     pub app_handle: Option<tauri::AppHandle>,
+    #[cfg(not(feature = "desktop"))]
+    pub app_handle: Option<()>,
 }
 
 impl ProxyMonitor {
+    #[cfg(feature = "desktop")]
     pub fn new(max_logs: usize, app_handle: Option<tauri::AppHandle>) -> Self {
         // Initialize DB
         if let Err(e) = crate::modules::proxy_db::init_db() {
@@ -49,6 +53,22 @@ impl ProxyMonitor {
             max_logs,
             enabled: AtomicBool::new(false), // Default to disabled
             app_handle,
+        }
+    }
+
+    #[cfg(not(feature = "desktop"))]
+    pub fn new(max_logs: usize, _app_handle: Option<()>) -> Self {
+        // Initialize DB
+        if let Err(e) = crate::modules::proxy_db::init_db() {
+            tracing::error!("Failed to initialize proxy DB: {}", e);
+        }
+
+        Self {
+            logs: RwLock::new(VecDeque::with_capacity(max_logs)),
+            stats: RwLock::new(ProxyStats::default()),
+            max_logs,
+            enabled: AtomicBool::new(false), // Default to disabled
+            app_handle: None,
         }
     }
 
@@ -94,6 +114,7 @@ impl ProxyMonitor {
         });
 
         // Emit event
+        #[cfg(feature = "desktop")]
         if let Some(app) = &self.app_handle {
              let _ = app.emit("proxy://request", &log);
         }
