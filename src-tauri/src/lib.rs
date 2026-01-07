@@ -6,11 +6,15 @@ pub mod utils;
 pub mod proxy;  // 反代服务模块
 pub mod error;
 
+#[cfg(feature = "desktop")]
 use tauri::Manager;
+#[cfg(feature = "desktop")]
 use modules::logger;
+#[cfg(feature = "desktop")]
 use tracing::{info, error};
 
 // 测试命令
+#[cfg(feature = "desktop")]
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)

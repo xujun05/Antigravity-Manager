@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use std::collections::VecDeque;
 use tokio::sync::RwLock;
+#[cfg(feature = "desktop")]
 use tauri::Emitter;
 use std::sync::atomic::{AtomicBool, Ordering};
 

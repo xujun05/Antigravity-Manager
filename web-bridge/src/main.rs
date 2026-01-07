@@ -374,6 +374,7 @@ async fn start_proxy(
         proxy::ProxySecurityConfig::from_proxy_config(&config),
         config.zai.clone(),
         state.monitor.clone(),
+        config.experimental.clone(),
     ).await {
         Ok(res) => res,
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),

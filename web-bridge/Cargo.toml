@@ -17,6 +17,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.10", features = ["v4"] }
 anyhow = "1.0"
 
-# Re-export tauri so we can satisfy some trait bounds if necessary (though ideally we avoid using tauri types)
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
 chrono = "0.4.42"
