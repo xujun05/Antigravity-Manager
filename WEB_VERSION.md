@@ -1,5 +1,14 @@
 # Antigravity Web Version Documentation
 
+## Guiding Principles (AI Context)
+1. **Core Working Directories**: `web/` (Frontend) and `web-bridge/` (Backend) are our primary workspaces. All active development happens here.
+2. **Upstream Isolation**: All other directories (like `src-tauri/`) are considered "upstream" code. Modifications to them must be kept to an absolute minimum to facilitate future updates.
+3. **API Wrapping**: We convert upstream code APIs for our use. The primary rule is to **wrap** functionality rather than modifying the native upstream code.
+4. **Web-First Compilation**: We do not care if the Desktop version compiles. Our success metric is that the WEB version compiles and functions correctly (using the provided upstream APIs).
+5. **Design Reference**: We strive for good website design and can reference implementation details from the upstream code or other sources, but we implement them independently in our web frontend.
+
+---
+
 This document describes the decoupled Web Version of Antigravity Tools, implemented to run in a standard browser environment while reusing the core logic of the original Desktop (Tauri) application.
 
 ## 1. API Mapping & Architecture
