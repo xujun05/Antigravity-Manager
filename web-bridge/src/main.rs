@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, State},
-    http::{Method, StatusCode},
-    response::{IntoResponse, Json, Response},
+    http::StatusCode,
+    response::{IntoResponse, Json, Html},
     routing::{get, post, delete},
     Router,
 };
@@ -9,8 +9,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::ServeDir;
-use tracing::{info, error};
+use tower_http::services::{ServeDir, ServeFile};
+use tracing::info;
 
 // Use the library crate
 use antigravity_tools_lib::{modules, proxy};
@@ -66,9 +66,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/admin/proxy/logs", get(get_proxy_logs))
         // OAuth Routes
         .route("/api/admin/oauth/url", get(get_oauth_url))
-        // Serve Frontend (dist folder)
-        // We assume the frontend is built to ../web/dist
-        .nest_service("/", ServeDir::new("../web/dist"))
+        // Serve Frontend (dist folder) with SPA fallback
+        // For any route not matched, serve index.html to let React Router handle it
+        .fallback_service(
+            ServeDir::new("../web/dist")
+                .not_found_service(ServeFile::new("../web/dist/index.html"))
+        )
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
