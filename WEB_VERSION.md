@@ -7,6 +7,13 @@
 4. **Web-First Compilation**: We do not care if the Desktop version compiles. Our success metric is that the WEB version compiles and functions correctly (using the provided upstream APIs).
 5. **Design Reference**: We strive for good website design and can reference implementation details from the upstream code or other sources, but we implement them independently in our web frontend.
 
+### Original Chinese Principles (User Mandate)
+1. 文件夹 `web` 与 `web-bridge` 是我们的主要工作代码文件夹。
+2. 其他文件夹是别人的代码，期望是修改越少越好，方便未来更新这些代码。
+3. 我们只把别人的代码API转化过来，然后供我们使用，以不修改它的原生代码为主要原则。
+4. 不在乎桌面版本是否可以编译，只在乎WEB版本可以编译（利用别人给的API即可）。
+5. 希望好的网站设计，可以参考别人的代码实现。
+
 ---
 
 This document describes the decoupled Web Version of Antigravity Tools, implemented to run in a standard browser environment while reusing the core logic of the original Desktop (Tauri) application.
