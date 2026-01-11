@@ -30,14 +30,17 @@ struct ProxyServiceInstance {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt::init();
-
-    // Initialize DB (ensure it exists)
-    // Note: The original app calls logger::init_logger() which might set up file logging.
-    // We are just using fmt::init for now to see stdout.
+    // Initialize logging using the upstream logger module
+    // This ensures logs are written to the correct location and format
+    modules::logger::init_logger();
 
     info!("Starting Antigravity Web Bridge...");
+
+    // Ensure data directory exists
+    if let Err(e) = modules::account::get_data_dir() {
+        tracing::error!("Failed to initialize data directory: {}", e);
+        // We continue, but expect errors
+    }
 
     // Initialize Monitor
     let monitor = Arc::new(proxy::monitor::ProxyMonitor::new(1000, None)); // None for AppHandle
@@ -96,6 +99,11 @@ async fn main() -> anyhow::Result<()> {
 // --- Handlers ---
 
 async fn list_accounts() -> impl IntoResponse {
+    // Calling blocking function in async context.
+    // Ideally should use spawn_blocking, but for local FS it's often acceptable.
+    // If we want to be strictly correct:
+    // tokio::task::spawn_blocking(move || modules::list_accounts()).await
+
     match modules::list_accounts() {
         Ok(accounts) => Json(accounts).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
@@ -260,14 +268,6 @@ async fn toggle_proxy_status(Path(id): Path<String>, Json(payload): Json<ToggleP
         return (StatusCode::NOT_FOUND, "Account not found").into_response();
     }
 
-    // Read and update file
-    // Simplified: Just read, toggle, write.
-    // Ideally we should use the same struct logic.
-    // But since `Account` struct is available, we can load, modify and save?
-    // `modules::upsert_account` expects email/name/token.
-    // We don't have a direct "update partial" function exposed easily.
-    // Let's create a raw JSON modification here as in the original command.
-
     match std::fs::read_to_string(&account_path) {
         Ok(content) => {
             let mut json: serde_json::Value = match serde_json::from_str(&content) {
@@ -300,19 +300,7 @@ async fn toggle_proxy_status(Path(id): Path<String>, Json(payload): Json<ToggleP
 
 // OAuth Helper
 async fn get_oauth_url() -> impl IntoResponse {
-    // We need to implement a "copy link" flow since we can't open a browser on the client machine from the server easily (if it's remote).
-    // But since this is a local web bridge, we can return the URL.
-    // The original logic starts a listener. We might need to start that listener here too?
-    // This is complex because `modules::oauth_server` depends on `tauri::AppHandle` to emit events.
-    // We cannot easily use `modules::oauth_server` without an AppHandle.
-    //
-    // ALTERNATIVE: Use the standard OOB (Out of Band) flow or just return the URL and let the user paste the code?
-    // Google deprecated OOB.
-    // We likely need to reimplement a simple OAuth flow that doesn't depend on Tauri.
-
-    // For now, let's just return a static string saying "Not Implemented in Web Bridge yet"
-    // or try to construct the URL manually if we have the client ID.
-
+    // Return a message or URL for the frontend
     Json("OAuth flow requires Tauri AppHandle currently. Please use Refresh Token login.").into_response()
 }
 
@@ -409,16 +397,7 @@ async fn stop_proxy(
 
     if let Some(instance) = instance_lock.take() {
         instance.axum_server.stop();
-        // Wait for it? or just let it drop. `server_handle` might need to be aborted or awaited.
-        // In original code: instance.server_handle.await.ok();
-        // Here we spawn a detach or just drop it.
-        // Dropping the server instance triggers shutdown via channel if implemented correctly.
-        // The original `AxumServer::stop` sends a signal.
-        // We can await the handle if we want synchronous stop confirmation.
-        // Since we are in an async handler, we can await it (but we hold the lock).
-        // Best to drop lock then await? But we `take()`-d it, so lock is free.
-        // Actually we hold the write lock until the end of scope.
-        // Let's simply drop it.
+        // Drop handler to detach
     }
 
     StatusCode::OK.into_response()

@@ -16,7 +16,10 @@ export const apiClient = {
   // Accounts
   listAccounts: async (): Promise<Account[]> => {
     const res = await fetch(`${API_BASE}/accounts`);
-    if (!res.ok) throw new Error('Failed to list accounts');
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Failed to list accounts (${res.status}): ${text.substring(0, 100)}`);
+    }
     return res.json();
   },
 
